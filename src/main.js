@@ -98,6 +98,7 @@ function renderMain() {
     <div class="toolbar">
       <button class="btn ghost" data-action="new-trip">＋ 新しい旅程を作る</button>
     </div>
+    <footer class="attribution">天気データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（<span>CC BY 4.0</span>）</footer>
   `;
 }
 

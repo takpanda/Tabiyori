@@ -65,6 +65,9 @@ button { font:inherit; color:inherit; cursor:pointer; }
 
 .hint { text-align:center; color:var(--muted); font-size:12px; margin-top:16px; }
 .toolbar { display:flex; gap:8px; margin-top:14px; justify-content:center; }
+.attribution { text-align:center; color:var(--muted); font-size:11px; margin-top:18px; line-height:1.6; }
+.attribution a { color:var(--muted); text-decoration:underline; text-underline-offset:2px; }
+.attribution a:hover { color:var(--accent); }
 
 /* setup */
 .setup .hero { padding:14px 4px 8px; }
