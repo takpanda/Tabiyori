@@ -30,39 +30,46 @@ function defaultSample() {
     name: '東北 温泉旅 4日間',
     days: [
       { date: '2026-09-13', location: '仙台', activities: [
-        { time: '12:30', title: '定義如来 西方寺' }, { time: '15:30', title: 'ホテルニュー水戸屋' } ] },
+        { time: '12:30', title: '定義如来 西方寺', location: '仙台' },
+        { time: '15:30', title: 'ホテルニュー水戸屋', location: '仙台' } ] },
       { date: '2026-09-14', location: '山形', activities: [
-        { time: '10:30', title: '秋保ワイナリー' },
-        { time: '14:00', title: '出羽三山神社' },
-        { time: '15:30', title: 'あつみ温泉 萬国屋' } ] },
+        { time: '10:30', title: '秋保ワイナリー', location: '仙台' },
+        { time: '14:00', title: '出羽三山神社', location: '山形' },
+        { time: '15:30', title: 'あつみ温泉 萬国屋', location: '山形' } ] },
       { date: '2026-09-15', location: '田村', activities: [
-        { time: '11:00', title: '庄内観光物産館' }, { time: '16:00', title: '母畑温泉 八幡屋' } ] },
+        { time: '11:00', title: '庄内観光物産館', location: '酒田' },
+        { time: '16:00', title: '母畑温泉 八幡屋', location: '田村' } ] },
       { date: '2026-09-16', location: '田村', activities: [
-        { time: '16:00', title: '帰宅' } ] },
+        { time: '16:00', title: '帰宅', location: '田村' } ] },
     ],
   };
 }
 
 // ---------------- weather loading ----------------
+// 場所（予定の場所と日単位の場所）ごとに、旅程全体の日付の予報を1回で取得する。
+// state.weather は `${場所}|${日付}` をキーに `{date, daily, hourly}` を保持。
 async function ensureWeather() {
-  const todo = [];
-  for (const day of state.trip.days) {
-    const k = keyOf(day);
-    if (!state.weather[k]) todo.push({ day, k });
-  }
+  const dates = state.trip.days.map((d) => d.date);
+  const places = new Set();
+  state.trip.days.forEach((day) => {
+    places.add(day.location);
+    (day.activities || []).forEach((a) => { if (a.location) places.add(a.location); });
+  });
+  const todo = [...places].filter((p) =>
+    !dates.some((d) => state.weather[`${p}|${d}`] || state.loading[`${p}|${d}`]));
   if (!todo.length) { render(); return; }
-  todo.forEach(({ k }) => { state.loading[k] = true; });
+  todo.forEach((p) => { dates.forEach((d) => { state.loading[`${p}|${d}`] = true; }); });
   render();
-  await Promise.all(todo.map(async ({ day, k }) => {
+  await Promise.all(todo.map(async (place) => {
     try {
-      const loc = await geocode(day.location);
-      if (!loc) { state.weather[k] = { error: '場所が見つかりません' }; return; }
-      const res = await fetchForecast(loc.lat, loc.lon, [day.date]);
-      state.weather[k] = res[0];
+      const loc = await geocode(place);
+      if (!loc) { dates.forEach((d) => { state.weather[`${place}|${d}`] = { error: '場所が見つかりません' }; }); return; }
+      const rows = await fetchForecast(loc.lat, loc.lon, dates);
+      rows.forEach((row) => { state.weather[`${place}|${row.date}`] = row; });
     } catch (e) {
-      state.weather[k] = { error: String(e) };
+      dates.forEach((d) => { state.weather[`${place}|${d}`] = { error: String(e) }; });
     } finally {
-      state.loading[k] = false;
+      dates.forEach((d) => { state.loading[`${place}|${d}`] = false; });
     }
   }));
   render();
@@ -102,13 +109,50 @@ function renderMain() {
   `;
 }
 
+// ---- 予定の天気（その場所＋その時刻）を引く ----
+function actWx(a, day) {
+  const place = a.location || day.location;
+  const key = `${place}|${day.date}`;
+  if (state.loading[key]) return { loading: true, place };
+  const wx = state.weather[key];
+  if (wx?.error) return { error: wx.error, place };
+  if (!wx || !wx.hourly || !wx.hourly.length) return { none: true, place };
+  const hh = parseInt(String(a.time || '').slice(0, 2), 10);
+  if (isNaN(hh)) return { none: true, place };
+  let h = wx.hourly.find((x) => x.hour == hh);
+  if (!h) h = wx.hourly.reduce((c, x) => Math.abs(x.hour - hh) < Math.abs(c.hour - hh) ? x : c);
+  return { wx: h, place, daily: wx.daily };
+}
+const isRainyLabel = (mc, precip) => mc.label.includes('雨') || mc.label.includes('雪') || precip >= 40;
+
+function actRow(a, day) {
+  const r = actWx(a, day);
+  let rain = false;
+  let wxHtml;
+  if (r.loading) wxHtml = `<span class="wx"><span class="e">…</span></span>`;
+  else if (r.error) wxHtml = `<span class="wx err"><span class="e">❓</span></span>`;
+  else if (!r.wx) wxHtml = `<span class="wx muted"><span class="e">📅</span></span>`;
+  else {
+    const mc = mapWeatherCode(r.wx.weather_code);
+    rain = isRainyLabel(mc, r.wx.precip);
+    wxHtml = `<span class="wx"><span class="e">${mc.emoji}</span><span class="tw">${money(r.wx.temp)}°</span>${r.wx.precip >= 40 ? `<span class="p">${r.wx.precip}%</span>` : ''}</span>`;
+  }
+  return `<div class="act ${rain ? 'rain' : ''}">
+    <span class="at">${esc(a.time || '')}</span>
+    <span class="tt">${esc(a.title)}</span>
+    <span class="pl">${esc(r.place)}</span>
+    ${wxHtml}
+  </div>`;
+}
+
 function dayCard(day, i) {
   const k = keyOf(day);
   const wx = state.weather[k];
   const loading = state.loading[k];
-  const agenda = day.activities.map((a) => a.title).join(' → ');
   const s = wx?.daily ? summarizeDay(wx) : null;
-  const hasBadge = s?.rainy;
+  const actRows = day.activities.map((a) => actRow(a, day)).join('');
+  const actRain = day.activities.some((a) => { const r = actWx(a, day); return r.wx ? isRainyLabel(mapWeatherCode(r.wx.weather_code), r.wx.precip) : (s?.rainy || false); });
+  const hasBadge = actRain;
 
   let right;
   if (loading) {
@@ -123,7 +167,7 @@ function dayCard(day, i) {
     right = `<div class="wx"><div class="icon">📅</div><div class="rain" style="color:var(--muted)">予報範囲外</div></div>`;
   }
 
-  const badge = hasBadge ? `<span class="badge">雨注意</span>` : (s && s.label.includes('晴れ') ? `<span class="badge ok">晴れ</span>` : '');
+  const badge = hasBadge ? `<span class="badge">雨注意</span>` : (day.activities.some((a) => { const r = actWx(a, day); return r.wx && mapWeatherCode(r.wx.weather_code).label.includes('晴れ'); }) ? `<span class="badge ok">晴れ</span>` : '');
 
   return `
     <article class="day ${hasBadge ? 'rain' : ''}">
@@ -131,12 +175,12 @@ function dayCard(day, i) {
         <div class="head">
           <div class="daylabel">
             <div class="d1">${esc(day.label || `${i + 1}日目`)}${badge}</div>
-            <div class="d2">${esc(shortDate(day.date))}(${weekdayJa(day.date)}) ・ ${esc(day.location)}</div>
+            <div class="d2">${esc(shortDate(day.date))}(${weekdayJa(day.date)}) ・ 拠点:${esc(day.location)}</div>
           </div>
           ${right}
           <span class="chev">›</span>
         </div>
-        <div class="agenda"><span class="mini">${esc(agenda)}</span><span class="count">${day.activities.length}予定</span></div>
+        <div class="acts">${actRows}</div>
       </div>
     </article>`;
 }
@@ -158,9 +202,30 @@ function openSheet(idx) {
   const s = wx?.daily ? summarizeDay(wx) : null;
   const tips = s ? packingTips(wx) : { tips: ['予報待ち'], note: '予報が取得できたら提案します。' };
 
+  // 予定ごとの天気（場所＋時刻）
+  const sheetActs = day.activities.map((a) => {
+    const r = actWx(a, day);
+    let wxHtml;
+    if (r.loading) wxHtml = `<span class="e">…</span>`;
+    else if (r.error) wxHtml = `<span class="e">❓</span>`;
+    else if (!r.wx) wxHtml = `<span class="e">📅</span>`;
+    else {
+      const mc = mapWeatherCode(r.wx.weather_code);
+      const rainy = isRainyLabel(mc, r.wx.precip);
+      wxHtml = `<div class="swx ${rainy ? 'rain' : ''}"><span class="e">${mc.emoji}</span><span class="l">${esc(mc.label)}</span>${r.wx.precip >= 30 ? `<span class="p">☔${r.wx.precip}%</span>` : ''}</div>`;
+    }
+    return `<div class="sheet-act">
+      <div class="at">${esc(a.time || '')}</div>
+      <div class="tt">${esc(a.title)}</div>
+      <div class="pl">${esc(r.place)}</div>
+      ${wxHtml}
+    </div>`;
+  }).join('');
+
   let hourly;
   if (wx?.hourly?.length) {
-    hourly = `<div class="tl2">${wx.hourly.map((h) => {
+    const want = ['06', '09', '12', '15', '18', '21'];
+    hourly = `<div class="tl2">${wx.hourly.filter((h) => want.includes(h.hour)).map((h) => {
       const mc = mapWeatherCode(h.weather_code);
       const rainy = mc.label.includes('雨') || mc.label.includes('雪') || h.precip >= 40;
       return `<div class="hr ${rainy ? 'rain' : ''}">
@@ -181,12 +246,10 @@ function openSheet(idx) {
         <div class="t">${s ? money(s.max) + '°' : '—'}<small>${s ? ' / ' + money(s.min) + '°' : ''}</small></div>
         <div class="cond">${esc(shortDate(day.date))}(${weekdayJa(day.date)}) ・ ${s ? esc(s.label) : '予報なし'}</div>
       </div>
-      <div class="cap"><div class="pl">${esc(day.location)}</div><div class="rain">${s ? '☔ ' + s.precip + '%' : ''}</div></div>
+      <div class="cap"><div class="pl">拠点:${esc(day.location)}</div><div class="rain">${s ? '☔ ' + s.precip + '%' : ''}</div></div>
     </div>
-    <div class="sect">
-      <h4>この日の気持ちいい時間</h4>
-      ${hourly}
-    </div>
+    ${sheetActs ? `<div class="sect"><h4>予定ごとの天気</h4><div class="sheet-acts">${sheetActs}</div></div>` : ''}
+    <div class="sect"><h4>時間帯別（${esc(day.location)}）</h4>${hourly}</div>
     <div class="sect">
       <div class="tip">
         <div class="i">🎒</div>
@@ -239,7 +302,8 @@ function dayEditor(day, i) {
         ${(day.activities || []).map((a, ai) => `
           <div class="act-item">
             <input class="input time" type="time" data-day="${i}" data-act="${ai}" data-set="time" value="${a.time}">
-            <input class="input title" data-day="${i}" data-act="${ai}" data-set="title" value="${esc(a.title)}">
+            <input class="input title" data-day="${i}" data-act="${ai}" data-set="title" value="${esc(a.title)}" placeholder="予定の内容">
+            <input class="input place" data-day="${i}" data-act="${ai}" data-set="place" value="${esc(a.location || '')}" placeholder="場所(任意)">
           </div>`).join('')}
       </div>
       <button class="add-act" data-action="add-activity" data-day="${i}">＋ 予定を追加</button>
@@ -258,7 +322,8 @@ function readSetup() {
     sc.querySelectorAll('.act-item').forEach((row) => {
       const t = row.querySelector('[data-set="time"]').value;
       const ti = row.querySelector('[data-set="title"]').value.trim();
-      if (ti) acts.push({ time: t, title: ti });
+      const pl = (row.querySelector('[data-set="place"]')?.value || '').trim();
+      if (ti) acts.push(pl ? { time: t, title: ti, location: pl } : { time: t, title: ti });
     });
     days.push({ date, location, activities: acts, label: `${di + 1}日目` });
   });
@@ -303,7 +368,7 @@ document.addEventListener('click', (e) => {
       const list = sc.querySelector('.act-list');
       const row = document.createElement('div');
       row.className = 'act-item';
-      row.innerHTML = `<input class="input time" type="time" data-day="${day}" data-set="time" value="12:00"><input class="input title" data-day="${day}" data-set="title" placeholder="予定の内容">`;
+      row.innerHTML = `<input class="input time" type="time" data-day="${day}" data-set="time" value="12:00"><input class="input title" data-day="${day}" data-set="title" placeholder="予定の内容"><input class="input place" data-day="${day}" data-set="place" placeholder="場所(任意)">`;
       list.appendChild(row);
       break;
     }

@@ -59,6 +59,20 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .agenda .mini { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .agenda .count { flex:none; font-size:11px; color:var(--muted); }
 
+/* カード内の予定ごとの天気 */
+.acts { display:flex; flex-direction:column; gap:5px; padding:2px 16px 14px; }
+.act { display:flex; align-items:center; gap:8px; font-size:13px; }
+.act .at { color:var(--muted); font-variant-numeric:tabular-nums; min-width:40px; }
+.act .tt { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.act .pl { color:var(--muted); font-size:12px; flex:none; max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.act .wx { display:flex; align-items:center; gap:4px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.act .wx .e { font-size:14px; }
+.act .wx .tw { font-weight:700; font-size:13px; }
+.act .wx .p { font-size:11px; color:var(--rain); }
+.act .wx.muted { color:var(--muted); }
+.act .wx.err { color:var(--danger); }
+.act.rain .tt { color:var(--danger); }
+
 .loading { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
 .spinner { width:16px;height:16px;border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
@@ -79,9 +93,10 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .subcard { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:14px; }
 .subcard .sc-t { font-family:Georgia,serif; font-size:17px; font-weight:600; margin-bottom:10px; }
 .act-list { margin-bottom:10px; }
-.act-item { display:grid; grid-template-columns:64px 1fr; gap:8px; margin-bottom:8px; }
+.act-item { display:grid; grid-template-columns:58px 1fr 92px; gap:8px; margin-bottom:8px; }
 .act-item .time { width:100%; }
 .act-item .title { width:100%; }
+.act-item .place { width:100%; font-size:14px; }
 .add-act { background:var(--accent-soft); color:var(--accent); border:0; border-radius:10px; padding:8px 12px; font-size:13px; font-weight:700; }
 
 /* sheet (variant 3) */
@@ -102,6 +117,18 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .sheet .dayhead .cap .rain { font-size:13px; color:var(--rain); font-weight:700; }
 .sect { margin-top:18px; }
 .sect h4 { font-size:13px; font-weight:800; color:var(--muted); letter-spacing:.04em; margin-bottom:12px; }
+/* シートの予定ごとの天気 */
+.sheet-acts { }
+.sheet-act { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); }
+.sheet-act:last-child { border-bottom:none; }
+.sheet-act .at { color:var(--muted); font-variant-numeric:tabular-nums; min-width:44px; }
+.sheet-act .tt { flex:1; font-weight:600; }
+.sheet-act .pl { color:var(--muted); font-size:12px; flex:none; max-width:84px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sheet-act .swx { display:flex; align-items:center; gap:5px; white-space:nowrap; font-size:13px; }
+.sheet-act .swx .e { font-size:17px; }
+.sheet-act .swx .l { font-size:12px; color:var(--muted); }
+.sheet-act .swx .p { font-size:12px; color:var(--rain); font-weight:700; }
+.sheet-act .swx.rain .l { color:var(--danger); }
 .tl2 { position:relative; padding-left:20px; }
 .tl2::before { content:""; position:absolute; left:7px; top:7px; bottom:7px; width:2px; background:var(--sky-soft); }
 .hr { position:relative; margin-bottom:13px; }

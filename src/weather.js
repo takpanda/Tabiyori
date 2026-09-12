@@ -98,11 +98,11 @@ export async function fetchForecast(lat, lon, dates) {
   });
 
   // 主要時間帯だけ抜粋（モバイルで見せる用）
-  const want = ['06', '09', '12', '15', '18', '21'];
+  // 予定の時刻に合わせて引けるよう、全時間帯を返す（抽出は表示側で行う）
   return needs.map((date) => ({
     date,
     daily: daily[date] || null,
-    hourly: (hourly[date] || []).filter((h) => want.includes(h.hour)),
+    hourly: (hourly[date] || []),
   }));
 }
 
