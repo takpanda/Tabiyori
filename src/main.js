@@ -24,20 +24,21 @@ function loadTrip() { try { return JSON.parse(localStorage.getItem(STORE_KEY)); 
 function saveTrip() { if (state.trip) localStorage.setItem(STORE_KEY, JSON.stringify(state.trip)); }
 
 function defaultSample() {
-  const base = new Date();
-  base.setDate(base.getDate() + 1); // 明日開始
-  const mk = (off) => { const d = new Date(base); d.setDate(d.getDate() + off); return fmtDate(d); };
+  // 実際の旅程（2026/09/13-16 東北温泉旅）をデフォルトにする。
+  // 観光列車タブ上の旅程ベース。各日は「その日の拠点（宿泊地）」を代表地点に設定。
   return {
-    name: '京都 3泊4日',
+    name: '東北 温泉旅 4日間',
     days: [
-      { date: mk(0), location: '京都', activities: [
-        { time: '11:00', title: '清水寺・二寧坂' }, { time: '14:00', title: '祇園さんぽ' }, { time: '18:30', title: '夕食（湯豆腐）' } ] },
-      { date: mk(1), location: '京都', activities: [
-        { time: '09:00', title: '嵐山（竹林・渡月橋）' }, { time: '13:00', title: '嵐山温泉' }, { time: '19:00', title: '夕食（夜景）' } ] },
-      { date: mk(2), location: '京都', activities: [
-        { time: '08:00', title: '伏見稲荷' }, { time: '11:30', title: '宇治・抹茶ランチ' }, { time: '14:00', title: '平等院' } ] },
-      { date: mk(3), location: '京都', activities: [
-        { time: '10:00', title: 'お土産めぐり' }, { time: '13:30', title: '新幹線で帰路' } ] },
+      { date: '2026-09-13', location: '仙台', activities: [
+        { time: '12:30', title: '定義如来 西方寺' }, { time: '15:30', title: 'ホテルニュー水戸屋' } ] },
+      { date: '2026-09-14', location: '山形', activities: [
+        { time: '10:30', title: '秋保ワイナリー' },
+        { time: '14:00', title: '出羽三山神社' },
+        { time: '15:30', title: 'あつみ温泉 萬国屋' } ] },
+      { date: '2026-09-15', location: '田村', activities: [
+        { time: '11:00', title: '庄内観光物産館' }, { time: '16:00', title: '母畑温泉 八幡屋' } ] },
+      { date: '2026-09-16', location: '田村', activities: [
+        { time: '16:00', title: '帰宅' } ] },
     ],
   };
 }
