@@ -1,0 +1,15 @@
+{
+  "name": "tabiyori",
+  "description": "旅の予定日にぴったりの天気を旅程に合わせて一覧できるWebアプリ（旅程×天気）",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

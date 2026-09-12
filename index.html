@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="旅の予定日にぴったりの天気を、旅程に合わせて一覧できるWebアプリ（旅程×天気）">
+  <title>旅日和（tabiyori）— 旅程 × 天気</title>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- 詳細シート用のオーバーレイ（メイン画面とは独立して固定配置） -->
+  <div class="backdrop" id="backdrop"></div>
+  <div class="sheet" id="sheet" role="dialog">
+    <div class="handle"></div>
+    <button class="close" id="sheet-close" data-action="close-sheet">✕</button>
+    <div class="inner" id="sheetBody"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
